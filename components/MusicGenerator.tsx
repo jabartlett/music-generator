@@ -11,6 +11,70 @@ const MusicGenerator = ({ mood }: MusicGeneratorProps) => {
   const sequenceRef = useRef<Tone.Sequence | null>(null);
   const synthRef = useRef<Tone.Synth | null>(null);
 
+  // Musical constants based on mood characteristics
+  const moodConfigs = {
+    happy: {
+      scale: ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'], // Major scale - typically happy/bright
+      tempo: 120,
+      noteLength: '8n',
+      probability: 0.7, // Chance of playing each note
+      synth: {
+        oscillator: { type: 'triangle' },
+        envelope: {
+          attack: 0.1,
+          decay: 0.2,
+          sustain: 0.5,
+          release: 0.8
+        }
+      }
+    },
+    sad: {
+      scale: ['A3', 'C4', 'D4', 'E4', 'G4', 'A4'], // Minor scale - melancholic
+      tempo: 80,
+      noteLength: '4n',
+      probability: 0.8,
+      synth: {
+        oscillator: { type: 'sine' },
+        envelope: {
+          attack: 0.2,
+          decay: 0.3,
+          sustain: 0.7,
+          release: 1.5
+        }
+      }
+    },
+    calm: {
+      scale: ['G3', 'B3', 'D4', 'E4', 'G4'], // Pentatonic scale - peaceful
+      tempo: 90,
+      noteLength: '2n',
+      probability: 0.6,
+      synth: {
+        oscillator: { type: 'sine' },
+        envelope: {
+          attack: 0.3,
+          decay: 0.4,
+          sustain: 0.6,
+          release: 2
+        }
+      }
+    }
+  };
+
+  const generateMelody = (scale: string[], length: number = 8) => {
+    const melody: string[] = [];
+    const config = moodConfigs[mood as keyof typeof moodConfigs];
+    
+    for (let i = 0; i < length; i++) {
+      if (Math.random() < config.probability) {
+        const randomNote = scale[Math.floor(Math.random() * scale.length)];
+        melody.push(randomNote);
+      } else {
+        melody.push(null as any); // Rest
+      }
+    }
+    return melody;
+  };
+
   const stopAndCleanup = () => {
     if (sequenceRef.current) {
       sequenceRef.current.stop();
@@ -26,28 +90,26 @@ const MusicGenerator = ({ mood }: MusicGeneratorProps) => {
   };
 
   const generateMusic = async () => {
-    // Clean up any existing sequence
     stopAndCleanup();
-    
-    // Make sure Tone.js is started
     await Tone.start();
     
-    // Create a new synth
-    synthRef.current = new Tone.Synth().toDestination();
+    const config = moodConfigs[mood as keyof typeof moodConfigs];
     
-    // Define different patterns for different moods
-    const patterns = {
-      happy: ['C4', 'E4', 'G4', 'A4'],
-      sad: ['A3', 'C4', 'E4', 'G4'],
-      calm: ['G3', 'B3', 'D4', 'F4']
-    };
+    // Set the tempo
+    Tone.Transport.bpm.value = config.tempo;
     
-    const notes = patterns[mood as keyof typeof patterns] || patterns.calm;
+    // Create a synth with mood-specific settings
+    synthRef.current = new Tone.Synth(config.synth).toDestination();
+    
+    // Generate a melody based on the mood's scale
+    const melody = generateMelody(config.scale);
     
     // Create a new sequence
     sequenceRef.current = new Tone.Sequence((time, note) => {
-      synthRef.current?.triggerAttackRelease(note, '8n', time);
-    }, notes, '4n');
+      if (note !== null) {
+        synthRef.current?.triggerAttackRelease(note, config.noteLength, time);
+      }
+    }, melody, '4n');
 
     Tone.Transport.start();
     sequenceRef.current.start();
