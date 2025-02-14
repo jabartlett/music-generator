@@ -10,21 +10,46 @@ const MusicGenerator = dynamic(() => import('../components/MusicGenerator'), {
 
 export default function Home() {
   const [mood, setMood] = useState<string>('');
+  const [inputText, setInputText] = useState<string>('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const response = await fetch('/api/analyze-mood', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: inputText }),
+      });
+      
+      const data = await response.json();
+      setMood(data.mood);
+    } catch (error) {
+      console.error('Error analyzing mood:', error);
+    }
+  };
 
   return (
     <main className="min-h-screen p-8">
       <h1 className="text-2xl mb-4">Mood Music Generator</h1>
       <div className="space-y-4">
-        <select 
-          value={mood} 
-          onChange={(e) => setMood(e.target.value)}
-          className="p-2 border rounded"
-        >
-          <option value="">Select a mood</option>
-          <option value="happy">Happy</option>
-          <option value="sad">Sad</option>
-          <option value="calm">Calm</option>
-        </select>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder="How are you feeling?"
+            className="p-2 border rounded w-full max-w-md"
+          />
+          <button
+            type="submit"
+            className="px-4 py-2 bg-blue-500 text-white rounded"
+          >
+            Generate Music
+          </button>
+        </form>
         {mood && <MusicGenerator mood={mood} />}
       </div>
     </main>
