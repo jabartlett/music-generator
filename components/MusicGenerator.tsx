@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import * as Tone from 'tone';
 
 interface MusicGeneratorProps {
@@ -8,13 +8,32 @@ interface MusicGeneratorProps {
 
 const MusicGenerator = ({ mood }: MusicGeneratorProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const sequenceRef = useRef<Tone.Sequence | null>(null);
+  const synthRef = useRef<Tone.Synth | null>(null);
+
+  const stopAndCleanup = () => {
+    if (sequenceRef.current) {
+      sequenceRef.current.stop();
+      sequenceRef.current.dispose();
+      sequenceRef.current = null;
+    }
+    if (synthRef.current) {
+      synthRef.current.dispose();
+      synthRef.current = null;
+    }
+    Tone.Transport.stop();
+    setIsPlaying(false);
+  };
 
   const generateMusic = async () => {
-    // Make sure Tone.js is started (needed due to browser autoplay policies)
+    // Clean up any existing sequence
+    stopAndCleanup();
+    
+    // Make sure Tone.js is started
     await Tone.start();
     
-    // Create a synth
-    const synth = new Tone.Synth().toDestination();
+    // Create a new synth
+    synthRef.current = new Tone.Synth().toDestination();
     
     // Define different patterns for different moods
     const patterns = {
@@ -23,38 +42,30 @@ const MusicGenerator = ({ mood }: MusicGeneratorProps) => {
       calm: ['G3', 'B3', 'D4', 'F4']
     };
     
-    // Get notes for the current mood
     const notes = patterns[mood as keyof typeof patterns] || patterns.calm;
     
-    // Create a sequence
-    const seq = new Tone.Sequence((time, note) => {
-      synth.triggerAttackRelease(note, '8n', time);
+    // Create a new sequence
+    sequenceRef.current = new Tone.Sequence((time, note) => {
+      synthRef.current?.triggerAttackRelease(note, '8n', time);
     }, notes, '4n');
 
-    // Start the sequence
     Tone.Transport.start();
-    seq.start();
+    sequenceRef.current.start();
     
     setIsPlaying(true);
   };
 
-  const stopMusic = () => {
-    Tone.Transport.stop();
-    setIsPlaying(false);
-  };
-
-  // Cleanup when component unmounts
+  // Cleanup when mood changes or component unmounts
   useEffect(() => {
     return () => {
-      Tone.Transport.stop();
-      Tone.Transport.cancel();
+      stopAndCleanup();
     };
-  }, []);
+  }, [mood]);
 
   return (
     <div className="space-y-4">
       <button
-        onClick={isPlaying ? stopMusic : generateMusic}
+        onClick={isPlaying ? stopAndCleanup : generateMusic}
         className="px-4 py-2 bg-blue-500 text-white rounded"
       >
         {isPlaying ? 'Stop Music' : 'Generate Music'}
