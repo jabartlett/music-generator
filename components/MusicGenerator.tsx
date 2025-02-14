@@ -6,20 +6,41 @@ interface MusicGeneratorProps {
   mood: string;
 }
 
+type OscillatorType = 'sine' | 'square' | 'triangle' | 'sawtooth';
+
+interface MoodConfig {
+  scale: string[];
+  tempo: number;
+  noteLength: string;
+  probability: number;
+  synth: {
+    oscillator: {
+      type: OscillatorType;
+    };
+    envelope: {
+      attack: number;
+      decay: number;
+      sustain: number;
+      release: number;
+    };
+  };
+}
+
 const MusicGenerator = ({ mood }: MusicGeneratorProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const sequenceRef = useRef<Tone.Sequence | null>(null);
   const synthRef = useRef<Tone.Synth | null>(null);
 
-  // Musical constants based on mood characteristics
-  const moodConfigs = {
+  const moodConfigs: Record<string, MoodConfig> = {
     happy: {
-      scale: ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'], // Major scale - typically happy/bright
+      scale: ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'],
       tempo: 120,
       noteLength: '8n',
-      probability: 0.7, // Chance of playing each note
+      probability: 0.7,
       synth: {
-        oscillator: { type: 'triangle' },
+        oscillator: {
+          type: 'triangle' as OscillatorType
+        },
         envelope: {
           attack: 0.1,
           decay: 0.2,
@@ -29,12 +50,14 @@ const MusicGenerator = ({ mood }: MusicGeneratorProps) => {
       }
     },
     sad: {
-      scale: ['A3', 'C4', 'D4', 'E4', 'G4', 'A4'], // Minor scale - melancholic
+      scale: ['A3', 'C4', 'D4', 'E4', 'G4', 'A4'],
       tempo: 80,
       noteLength: '4n',
       probability: 0.8,
       synth: {
-        oscillator: { type: 'sine' },
+        oscillator: {
+          type: 'sine' as OscillatorType
+        },
         envelope: {
           attack: 0.2,
           decay: 0.3,
@@ -44,12 +67,14 @@ const MusicGenerator = ({ mood }: MusicGeneratorProps) => {
       }
     },
     calm: {
-      scale: ['G3', 'B3', 'D4', 'E4', 'G4'], // Pentatonic scale - peaceful
+      scale: ['G3', 'B3', 'D4', 'E4', 'G4'],
       tempo: 90,
       noteLength: '2n',
       probability: 0.6,
       synth: {
-        oscillator: { type: 'sine' },
+        oscillator: {
+          type: 'sine' as OscillatorType
+        },
         envelope: {
           attack: 0.3,
           decay: 0.4,
